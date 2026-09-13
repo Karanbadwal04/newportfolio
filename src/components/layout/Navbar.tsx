@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, FileText } from 'lucide-react';
 import { navItems } from '../../data/portfolio';
 import { useScrollSpy } from '../../hooks/useScrollSpy';
-import { useCursor } from '../../hooks/useCursor';
+import { useCursorActions } from '../../hooks/useCursor';
 import { useSound } from '../../hooks/useSound';
 import SoundToggle from '../ui/SoundToggle';
+import ThemeToggle from '../ui/ThemeToggle';
 import ResumeModal from '../ui/ResumeModal';
 
 export default function Navbar() {
@@ -13,7 +14,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [resumeOpen, setResumeOpen] = useState(false);
   const activeSection = useScrollSpy(navItems.map((n) => n.id));
-  const { setCursor, resetCursor } = useCursor();
+  const { setCursor, resetCursor } = useCursorActions();
   const { playHover, playClick } = useSound();
 
   useEffect(() => {
@@ -102,6 +103,10 @@ export default function Navbar() {
               <span className="hidden sm:inline">Resume</span>
             </button>
 
+            {/* Day / Night Full Toggle */}
+            <ThemeToggle />
+
+            {/* Sound Toggle */}
             <SoundToggle />
 
             {/* Mobile menu toggle */}
@@ -145,6 +150,11 @@ export default function Navbar() {
                 {item.label}
               </motion.button>
             ))}
+
+            <div className="mt-4 flex items-center gap-3">
+              <ThemeToggle />
+              <SoundToggle />
+            </div>
 
             <motion.button
               onClick={() => { setMobileOpen(false); setResumeOpen(true); }}

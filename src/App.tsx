@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { CursorProvider } from './hooks/useCursor';
+import { ThemeProvider } from './hooks/useTheme';
 import { soundEngine } from './utils/soundEngine';
 import CustomCursor from './components/ui/CustomCursor';
 import LoadingScreen from './components/layout/LoadingScreen';
@@ -15,6 +16,11 @@ import Education from './components/sections/Education';
 import Contact from './components/sections/Contact';
 
 export default function App() {
+  // Reset scroll to top on initial load
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Initialize audio on first user interaction
   useEffect(() => {
     const initAudio = () => {
@@ -38,23 +44,25 @@ export default function App() {
   }, []);
 
   return (
-    <CursorProvider>
-      <LoadingScreen />
-      <CustomCursor />
-      <Navbar />
+    <ThemeProvider>
+      <CursorProvider>
+        <LoadingScreen />
+        <CustomCursor />
+        <Navbar />
 
-      <main>
-        <Hero />
-        <About />
-        <Skills />
-        <Experience />
-        <Projects />
-        <Certifications />
-        <Education />
-        <Contact />
-      </main>
+        <main>
+          <Hero />
+          <About />
+          <Skills />
+          <Experience />
+          <Projects />
+          <Certifications />
+          <Education />
+          <Contact />
+        </main>
 
-      <Footer />
-    </CursorProvider>
+        <Footer />
+      </CursorProvider>
+    </ThemeProvider>
   );
 }

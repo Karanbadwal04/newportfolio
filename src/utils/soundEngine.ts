@@ -1,6 +1,7 @@
 // ============================================================
 // Sound Engine — Background Music & Sweet Acoustic Piano FX
 // Powered by HTML5 Audio + Web Audio API Synthesis
+// Ultra-optimized for zero hover latency
 // ============================================================
 
 class SoundEngine {
@@ -14,6 +15,7 @@ class SoundEngine {
   private hoverNoteIndex = 0;
   private bgMusicTargetVolume = 0.22;
   private fadeInterval: number | null = null;
+  private lastHoverTime = 0;
 
   // Sweet E-Major / Lydian pentatonic scale frequencies (Hz) for hover notes
   private readonly HOVER_SCALE = [
@@ -47,9 +49,9 @@ class SoundEngine {
       this.masterGain.gain.value = this.isMuted ? 0 : 1;
       this.masterGain.connect(this.ctx.destination);
 
-      // Algorithmic soundboard reverb for piano SFX
+      // Algorithmic soundboard reverb for click chords
       this.reverbNode = this.ctx.createConvolver();
-      this.reverbNode.buffer = this.buildPianoReverbImpulse(this.ctx, 2.0, 2.2);
+      this.reverbNode.buffer = this.buildPianoReverbImpulse(this.ctx, 1.8, 2.4);
 
       this.dryGain = this.ctx.createGain();
       this.dryGain.gain.value = 0.85;
@@ -79,16 +81,14 @@ class SoundEngine {
       this.bgAudio.volume = this.isMuted ? 0 : this.bgMusicTargetVolume;
 
       if (!this.isMuted) {
-        this.bgAudio.play().catch(() => {
-          // Autoplay was prevented by browser until further interaction
-        });
+        this.bgAudio.play().catch(() => {});
       }
     } catch (err) {
       console.warn('Could not initialize background music:', err);
     }
   }
 
-  private buildPianoReverbImpulse(ctx: AudioContext, duration = 2.0, decay = 2.0): AudioBuffer {
+  private buildPianoReverbImpulse(ctx: AudioContext, duration = 1.8, decay = 2.4): AudioBuffer {
     const rate = ctx.sampleRate;
     const length = Math.floor(rate * duration);
     const impulse = ctx.createBuffer(2, length, rate);
@@ -113,108 +113,76 @@ class SoundEngine {
   }
 
   /**
-   * Synthesizes a sweet acoustic piano note
+   * Fast, ultra-lightweight sweet piano chime on hover (Zero lag)
    */
-  private playPianoNote(freq: number, velocity = 0.65, duration = 1.6): void {
-    if (this.isMuted || !this.ensureCtx() || !this.ctx || !this.dryGain || !this.reverbNode) return;
-
-    const now = this.ctx.currentTime;
-    const noteGain = this.ctx.createGain();
-    noteGain.gain.setValueAtTime(0.0001, now);
-    noteGain.gain.linearRampToValueAtTime(velocity * 0.1, now + 0.003);
-    noteGain.gain.exponentialRampToValueAtTime(velocity * 0.05, now + 0.08);
-    noteGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    const cutoff = Math.min(7500, freq * 4.5 + 800);
-    filter.frequency.setValueAtTime(cutoff, now);
-    filter.frequency.exponentialRampToValueAtTime(Math.max(400, freq * 1.5), now + duration * 0.7);
-
-    noteGain.connect(filter);
-    filter.connect(this.dryGain);
-    filter.connect(this.reverbNode);
-
-    const B = 0.00025;
-    const harmonics = [
-      { n: 1, gain: 1.0, decayFactor: 1.0 },
-      { n: 2, gain: 0.65, decayFactor: 0.9 },
-      { n: 3, gain: 0.35, decayFactor: 0.7 },
-      { n: 4, gain: 0.20, decayFactor: 0.55 },
-      { n: 5, gain: 0.10, decayFactor: 0.4 },
-    ];
-
-    harmonics.forEach(({ n, gain: hGain, decayFactor }) => {
-      const partialFreq = n * freq * Math.sqrt(1 + B * n * n);
-      if (partialFreq > 16000) return;
-
-      [-1.2, 1.2].forEach((detuneCents) => {
-        const osc = this.ctx!.createOscillator();
-        const oscGain = this.ctx!.createGain();
-
-        osc.type = n === 1 ? 'sine' : 'triangle';
-        osc.frequency.setValueAtTime(partialFreq, now);
-        osc.detune.setValueAtTime(detuneCents, now);
-
-        const partialDuration = duration * decayFactor;
-        oscGain.gain.setValueAtTime(hGain * 0.5, now);
-        oscGain.gain.exponentialRampToValueAtTime(0.0001, now + partialDuration);
-
-        osc.connect(oscGain);
-        oscGain.connect(noteGain);
-
-        osc.start(now);
-        osc.stop(now + partialDuration);
-      });
-    });
-
-    // Hammer percussive transient
-    const hammerOsc = this.ctx.createOscillator();
-    const hammerGain = this.ctx.createGain();
-    const hammerFilter = this.ctx.createBiquadFilter();
-
-    hammerOsc.type = 'triangle';
-    hammerOsc.frequency.setValueAtTime(freq * 3, now);
-    hammerOsc.frequency.exponentialRampToValueAtTime(100, now + 0.012);
-
-    hammerFilter.type = 'bandpass';
-    hammerFilter.frequency.setValueAtTime(1800, now);
-    hammerFilter.Q.setValueAtTime(1.5, now);
-
-    hammerGain.gain.setValueAtTime(velocity * 0.05, now);
-    hammerGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.015);
-
-    hammerOsc.connect(hammerFilter);
-    hammerFilter.connect(hammerGain);
-    hammerGain.connect(this.dryGain);
-
-    hammerOsc.start(now);
-    hammerOsc.stop(now + 0.02);
-  }
-
-  // ── Hover Sound ─────────────────────────────────────────
-
   playHover(): void {
-    if (this.isMuted) return;
+    if (this.isMuted || !this.ensureCtx() || !this.ctx || !this.dryGain) return;
 
+    const now = performance.now();
+    // Debounce rapid multi-element mouse sweeps by 65ms
+    if (now - this.lastHoverTime < 65) return;
+    this.lastHoverTime = now;
+
+    const audioNow = this.ctx.currentTime;
     const freq = this.HOVER_SCALE[this.hoverNoteIndex % this.HOVER_SCALE.length];
     this.hoverNoteIndex = (this.hoverNoteIndex + 1) % this.HOVER_SCALE.length;
 
-    this.playPianoNote(freq, 0.4, 1.2);
+    // Fast 2-oscillator sweet harmonic chime
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, audioNow);
+    gain.gain.linearRampToValueAtTime(0.055, audioNow + 0.002);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioNow + 0.35);
+
+    const osc1 = this.ctx.createOscillator();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(freq, audioNow);
+
+    const osc2 = this.ctx.createOscillator();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(freq * 2.001, audioNow);
+
+    const osc2Gain = this.ctx.createGain();
+    osc2Gain.gain.setValueAtTime(0.25, audioNow);
+
+    osc1.connect(gain);
+    osc2.connect(osc2Gain);
+    osc2Gain.connect(gain);
+    gain.connect(this.dryGain);
+
+    osc1.start(audioNow);
+    osc2.start(audioNow);
+    osc1.stop(audioNow + 0.35);
+    osc2.stop(audioNow + 0.35);
   }
 
-  // ── Click Sound ─────────────────────────────────────────
-
+  /**
+   * Rich rolled grand piano chord on click
+   */
   playClick(): void {
-    if (this.isMuted || !this.ensureCtx() || !this.ctx) return;
+    if (this.isMuted || !this.ensureCtx() || !this.ctx || !this.dryGain) return;
 
     const chordNotes = [329.63, 415.30, 493.88, 622.25, 830.61]; // E4, G#4, B4, D#5, G#5
     chordNotes.forEach((freq, idx) => {
       setTimeout(() => {
-        if (!this.isMuted) {
-          this.playPianoNote(freq, 0.5 - idx * 0.04, 1.8);
+        if (!this.isMuted && this.ctx && this.dryGain) {
+          const now = this.ctx.currentTime;
+          const gain = this.ctx.createGain();
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.linearRampToValueAtTime(0.06 - idx * 0.008, now + 0.003);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.9);
+
+          const osc = this.ctx.createOscillator();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now);
+
+          osc.connect(gain);
+          gain.connect(this.dryGain);
+          if (this.reverbNode) gain.connect(this.reverbNode);
+
+          osc.start(now);
+          osc.stop(now + 0.95);
         }
-      }, idx * 18);
+      }, idx * 16);
     });
   }
 
@@ -228,14 +196,14 @@ class SoundEngine {
     }
 
     if (this.bgAudio) {
-      this.fadeAudio(this.bgAudio, this.bgMusicTargetVolume, 1500);
+      this.fadeAudio(this.bgAudio, this.bgMusicTargetVolume, 1200);
       this.bgAudio.play().catch(() => {});
     }
   }
 
   stopAmbient(): void {
     if (this.bgAudio) {
-      this.fadeAudio(this.bgAudio, 0, 800, () => {
+      this.fadeAudio(this.bgAudio, 0, 600, () => {
         this.bgAudio?.pause();
       });
     }
@@ -252,7 +220,7 @@ class SoundEngine {
       this.fadeInterval = null;
     }
 
-    const steps = 25;
+    const steps = 20;
     const stepTime = durationMs / steps;
     const startVolume = audio.volume;
     const delta = (targetVolume - startVolume) / steps;
@@ -290,7 +258,7 @@ class SoundEngine {
       const now = this.ctx.currentTime;
       this.masterGain.gain.linearRampToValueAtTime(
         this.isMuted ? 0 : 1,
-        now + 0.2
+        now + 0.15
       );
     }
 
@@ -298,10 +266,9 @@ class SoundEngine {
       this.stopAmbient();
     } else {
       this.startAmbient();
-      // Confirmation chime
       setTimeout(() => {
-        this.playPianoNote(830.61, 0.45, 1.4);
-      }, 80);
+        this.playHover();
+      }, 50);
     }
 
     return !this.isMuted;

@@ -29,14 +29,75 @@ export default function AnimatedText({
     return <Tag className={className}>{text}</Tag>;
   }
 
-  const items = splitBy === 'word' ? text.split(' ') : text.split('');
+  // If split by letter, split into words first to prevent awkward mobile word breaks
+  if (splitBy === 'letter') {
+    const words = text.split(' ');
+    let globalCharIndex = 0;
+
+    return (
+      <Tag ref={ref as any} className={className} aria-label={text}>
+        {words.map((word, wordIdx) => {
+          const letters = word.split('');
+          const startIdx = globalCharIndex;
+          globalCharIndex += letters.length + 1;
+
+          return (
+            <span
+              key={wordIdx}
+              style={{
+                display: 'inline-block',
+                whiteSpace: 'nowrap',
+                marginRight: wordIdx < words.length - 1 ? '0.35em' : '0',
+              }}
+            >
+              {letters.map((letter, letterIdx) => {
+                const charIndex = startIdx + letterIdx;
+                return (
+                  <span
+                    key={letterIdx}
+                    style={{
+                      display: 'inline-block',
+                      overflow: 'hidden',
+                      verticalAlign: 'top',
+                    }}
+                  >
+                    <motion.span
+                      style={{ display: 'inline-block' }}
+                      initial={{ y: '110%', opacity: 0 }}
+                      animate={isInView ? { y: '0%', opacity: 1 } : { y: '110%', opacity: 0 }}
+                      transition={{
+                        duration: 0.5,
+                        delay: delay + charIndex * stagger,
+                        ease: [0.22, 1, 0.36, 1],
+                      }}
+                      aria-hidden="true"
+                    >
+                      {letter}
+                    </motion.span>
+                  </span>
+                );
+              })}
+            </span>
+          );
+        })}
+      </Tag>
+    );
+  }
+
+  // If split by word
+  const words = text.split(' ');
 
   return (
     <Tag ref={ref as any} className={className} aria-label={text}>
-      {items.map((item, i) => (
+      {words.map((word, i) => (
         <span
           key={i}
-          style={{ display: 'inline-block', overflow: 'hidden', verticalAlign: 'top' }}
+          style={{
+            display: 'inline-block',
+            overflow: 'hidden',
+            verticalAlign: 'top',
+            marginRight: i < words.length - 1 ? '0.3em' : '0',
+          }}
         >
           <motion.span
             style={{ display: 'inline-block' }}
@@ -49,8 +110,7 @@ export default function AnimatedText({
             }}
             aria-hidden="true"
           >
-            {item}
-            {splitBy === 'word' && i < items.length - 1 ? '\u00A0' : ''}
+            {word}
           </motion.span>
         </span>
       ))}

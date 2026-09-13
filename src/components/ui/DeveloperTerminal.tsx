@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Terminal, Send, CornerDownLeft } from 'lucide-react';
+import { Terminal, CornerDownLeft } from 'lucide-react';
 import { useSound } from '../../hooks/useSound';
 
 interface HistoryItem {
@@ -19,11 +19,18 @@ export default function DeveloperTerminal() {
       output: ['Java', 'C/C++', 'Python', 'React.js', 'Node.js', 'Express.js', 'Linux', 'SQL'],
     },
   ]);
-  const terminalEndRef = useRef<HTMLDivElement>(null);
+  const terminalBodyRef = useRef<HTMLDivElement>(null);
+  const isInitialMount = useRef(true);
   const { playHover, playClick } = useSound();
 
   useEffect(() => {
-    terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    if (terminalBodyRef.current) {
+      terminalBodyRef.current.scrollTop = terminalBodyRef.current.scrollHeight;
+    }
   }, [history]);
 
   const handleCommand = (e: React.FormEvent) => {
@@ -112,7 +119,10 @@ export default function DeveloperTerminal() {
       </div>
 
       {/* Terminal Body */}
-      <div className="p-4 md:p-5 max-h-72 overflow-y-auto space-y-3 leading-relaxed text-[#ccc]">
+      <div
+        ref={terminalBodyRef}
+        className="p-4 md:p-5 max-h-72 overflow-y-auto space-y-3 leading-relaxed text-[#ccc]"
+      >
         <div className="text-[#666] text-[11px]">
           Welcome to Karanvir's interactive terminal. Type <span className="text-[#00d4ff]">help</span> to view commands.
         </div>
@@ -134,7 +144,6 @@ export default function DeveloperTerminal() {
             </div>
           </div>
         ))}
-        <div ref={terminalEndRef} />
       </div>
 
       {/* Command Input */}

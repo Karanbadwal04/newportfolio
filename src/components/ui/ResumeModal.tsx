@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Download, Printer, ExternalLink, Mail, Phone, MapPin, GraduationCap, Briefcase, Award, Code2 } from 'lucide-react';
+import { X, Printer, Mail, Phone, MapPin, GraduationCap, Briefcase, Award, Code2 } from 'lucide-react';
 import { contact, education, experience, certifications, skills, projects } from '../../data/portfolio';
 import { useEffect } from 'react';
 import { useSound } from '../../hooks/useSound';

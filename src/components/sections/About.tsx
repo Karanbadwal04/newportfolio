@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Code2, FolderGit2, Award, Terminal as TerminalIcon, Sparkles } from 'lucide-react';
+import { Code2, FolderGit2, Award, Sparkles } from 'lucide-react';
 import SectionHeading from '../ui/SectionHeading';
 import ScrollReveal from '../ui/ScrollReveal';
 import GlassCard from '../ui/GlassCard';

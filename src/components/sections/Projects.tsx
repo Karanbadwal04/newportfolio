@@ -3,11 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { projects } from '../../data/portfolio';
 import type { Project } from '../../data/portfolio';
 import SectionHeading from '../ui/SectionHeading';
-import ScrollReveal from '../ui/ScrollReveal';
 import ProjectModal from '../ui/ProjectModal';
-import { useCursor } from '../../hooks/useCursor';
+import { useCursorActions } from '../../hooks/useCursor';
 import { useSound } from '../../hooks/useSound';
-import { ExternalLink, Layers, ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 
 const projectFilters = [
   { key: 'all', label: 'All Projects' },
@@ -19,7 +18,7 @@ export default function Projects() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const { playClick, playHover } = useSound();
-  const { setCursor, resetCursor } = useCursor();
+  const { setCursor, resetCursor } = useCursorActions();
 
   const filteredProjects = projects.filter((p) => {
     if (activeFilter === 'all') return true;
@@ -97,7 +96,7 @@ function ProjectCard({
   onClick: () => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const { setCursor, resetCursor } = useCursor();
+  const { setCursor, resetCursor } = useCursorActions();
   const { playHover, playClick } = useSound();
 
   const handleMouseMove = (e: React.MouseEvent) => {

@@ -3,13 +3,13 @@ import { Award } from 'lucide-react';
 import { certifications } from '../../data/portfolio';
 import SectionHeading from '../ui/SectionHeading';
 import ScrollReveal from '../ui/ScrollReveal';
-import { useCursor } from '../../hooks/useCursor';
+import { useCursorActions } from '../../hooks/useCursor';
 import { useSound } from '../../hooks/useSound';
 
 const certColors = ['#00d4ff', '#22c55e', '#a855f7'];
 
 export default function Certifications() {
-  const { setCursor, resetCursor } = useCursor();
+  const { setCursor, resetCursor } = useCursorActions();
   const { playHover } = useSound();
 
   return (

@@ -18,7 +18,3 @@ export function useMediaQuery(query: string): boolean {
 export function useIsTouchDevice(): boolean {
   return useMediaQuery('(pointer: coarse)');
 }
-
-export function useIsMobile(): boolean {
-  return useMediaQuery('(max-width: 768px)');
-}

@@ -1,6 +1,6 @@
 import { useRef, type ReactNode, type MouseEvent } from 'react';
 import { gsap } from 'gsap';
-import { useCursor, type CursorVariant } from '../../hooks/useCursor';
+import { useCursorActions, type CursorVariant } from '../../hooks/useCursor';
 import { useSound } from '../../hooks/useSound';
 
 interface MagneticButtonProps {
@@ -27,7 +27,7 @@ export default function MagneticButton({
   ariaLabel,
 }: MagneticButtonProps) {
   const ref = useRef<HTMLElement>(null);
-  const { setCursor, resetCursor, isTouch } = useCursor();
+  const { setCursor, resetCursor, isTouch } = useCursorActions();
   const { playHover, playClick } = useSound();
 
   const handleMouseMove = (e: MouseEvent) => {

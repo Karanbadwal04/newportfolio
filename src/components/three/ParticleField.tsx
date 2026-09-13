@@ -2,8 +2,9 @@ import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useTheme } from '../../hooks/useTheme';
 
-function Particles() {
+function Particles({ isDark }: { isDark: boolean }) {
   const ref = useRef<THREE.Points>(null);
   const count = 200;
 
@@ -28,16 +29,14 @@ function Particles() {
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
-          count={count}
-          array={positions}
-          itemSize={3}
+          args={[positions, 3]}
         />
       </bufferGeometry>
       <pointsMaterial
         size={0.03}
-        color="#00d4ff"
+        color={isDark ? "#00d4ff" : "#0284c7"}
         transparent
-        opacity={0.4}
+        opacity={isDark ? 0.4 : 0.55}
         sizeAttenuation
         depthWrite={false}
       />
@@ -47,18 +46,19 @@ function Particles() {
 
 export default function ParticleField() {
   const reduced = useReducedMotion();
+  const { isDark } = useTheme();
 
   if (reduced) return null;
 
   return (
-    <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.5 }}>
+    <div className="absolute inset-0 pointer-events-none" style={{ opacity: isDark ? 0.5 : 0.7 }}>
       <Canvas
         camera={{ position: [0, 0, 5], fov: 60 }}
         dpr={[1, 1.5]}
         style={{ width: '100%', height: '100%' }}
         gl={{ antialias: false, alpha: true }}
       >
-        <Particles />
+        <Particles isDark={isDark} />
       </Canvas>
     </div>
   );

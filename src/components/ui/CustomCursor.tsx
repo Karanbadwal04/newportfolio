@@ -1,82 +1,86 @@
-import { motion } from 'framer-motion';
-import { useCursor } from '../../hooks/useCursor';
+import { useEffect, useRef } from 'react';
+import { useCursorState, useCursorActions } from '../../hooks/useCursor';
 
 export default function CustomCursor() {
-  const { x, y, variant, label, isTouch } = useCursor();
+  const { variant, label } = useCursorState();
+  const { isTouch } = useCursorActions();
+  const dotRef = useRef<HTMLDivElement>(null);
+  const ringRef = useRef<HTMLDivElement>(null);
+  const mousePos = useRef({ x: -100, y: -100 });
+  const ringPos = useRef({ x: -100, y: -100 });
+  const rafId = useRef<number>(0);
+
+  useEffect(() => {
+    if (isTouch) return;
+
+    const onMouseMove = (e: MouseEvent) => {
+      mousePos.current = { x: e.clientX, y: e.clientY };
+      if (dotRef.current) {
+        dotRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-50%, -50%)`;
+      }
+    };
+
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
+
+    // Smooth spring/lerp loop for the larger outer ring
+    const render = () => {
+      ringPos.current.x += (mousePos.current.x - ringPos.current.x) * 0.2;
+      ringPos.current.y += (mousePos.current.y - ringPos.current.y) * 0.2;
+
+      if (ringRef.current) {
+        ringRef.current.style.transform = `translate3d(${ringPos.current.x}px, ${ringPos.current.y}px, 0) translate(-50%, -50%)`;
+      }
+      rafId.current = requestAnimationFrame(render);
+    };
+
+    rafId.current = requestAnimationFrame(render);
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      cancelAnimationFrame(rafId.current);
+    };
+  }, [isTouch]);
 
   if (isTouch) return null;
 
   const dotSize = variant === 'default' ? 8 : variant === 'text' ? 6 : 4;
   const ringSize =
-    variant === 'project' ? 80 : variant === 'button' ? 60 : variant === 'link' ? 50 : 40;
-  const showLabel = (variant === 'button' || variant === 'project') && label;
+    variant === 'project' ? 80 : variant === 'button' ? 60 : variant === 'link' ? 50 : 38;
+  const showLabel = (variant === 'button' || variant === 'project') && !!label;
 
   return (
     <>
-      {/* Dot */}
-      <motion.div
-        className="cursor-dot"
-        animate={{
-          x: x - dotSize / 2,
-          y: y - dotSize / 2,
-          width: dotSize,
-          height: dotSize,
-        }}
-        transition={{ type: 'tween', duration: 0 }}
+      {/* Small Precision Dot */}
+      <div
+        ref={dotRef}
+        className="fixed top-0 left-0 rounded-full bg-[#00d4ff] pointer-events-none z-[9999] mix-blend-difference will-change-transform"
         style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          borderRadius: '50%',
-          background: '#00d4ff',
-          pointerEvents: 'none',
-          zIndex: 9999,
-          mixBlendMode: 'difference',
+          width: `${dotSize}px`,
+          height: `${dotSize}px`,
+          transition: 'width 0.15s ease, height 0.15s ease',
         }}
       />
 
-      {/* Ring */}
-      <motion.div
-        className="cursor-ring"
-        animate={{
-          x: x - ringSize / 2,
-          y: y - ringSize / 2,
-          width: ringSize,
-          height: ringSize,
-          opacity: variant === 'default' ? 0.4 : 0.6,
-        }}
-        transition={{ type: 'spring', stiffness: 150, damping: 15, mass: 0.5 }}
+      {/* Responsive Glow Ring */}
+      <div
+        ref={ringRef}
+        className="fixed top-0 left-0 rounded-full border border-[#00d4ff]/50 pointer-events-none z-[9998] flex items-center justify-center will-change-transform"
         style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          borderRadius: '50%',
-          border: '1.5px solid rgba(0, 212, 255, 0.5)',
-          pointerEvents: 'none',
-          zIndex: 9998,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          width: `${ringSize}px`,
+          height: `${ringSize}px`,
+          opacity: variant === 'default' ? 0.35 : 0.75,
+          transition: 'width 0.2s cubic-bezier(0.16, 1, 0.3, 1), height 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease',
         }}
       >
         {showLabel && (
-          <motion.span
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5 }}
-            style={{
-              fontSize: '9px',
-              fontWeight: 600,
-              letterSpacing: '0.1em',
-              color: '#00d4ff',
-              textTransform: 'uppercase',
-              whiteSpace: 'nowrap',
-            }}
+          <span
+            className="text-[9px] font-mono font-bold tracking-widest text-[#00d4ff] uppercase whitespace-nowrap select-none"
+            style={{ textShadow: '0 0 8px rgba(0,212,255,0.6)' }}
           >
             {label}
-          </motion.span>
+          </span>
         )}
-      </motion.div>
+      </div>
     </>
   );
 }

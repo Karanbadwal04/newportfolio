@@ -1,4 +1,4 @@
-import { Mail, Phone, MapPin, MessageSquare, Send } from 'lucide-react';
+import { Mail, Phone } from 'lucide-react';
 import { contact } from '../../data/portfolio';
 import SectionHeading from '../ui/SectionHeading';
 import ScrollReveal from '../ui/ScrollReveal';

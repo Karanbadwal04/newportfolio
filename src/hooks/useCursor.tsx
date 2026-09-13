@@ -1,82 +1,80 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { useIsTouchDevice } from './useMediaQuery';
 
 export type CursorVariant = 'default' | 'text' | 'button' | 'project' | 'link';
 
-interface CursorCtx {
-  x: number;
-  y: number;
+interface CursorState {
   variant: CursorVariant;
   label: string;
+}
+
+interface CursorActions {
   setCursor: (variant: CursorVariant, label?: string) => void;
   resetCursor: () => void;
   isTouch: boolean;
 }
 
-const CursorContext = createContext<CursorCtx>({
-  x: 0,
-  y: 0,
+const CursorStateContext = createContext<CursorState>({
   variant: 'default',
   label: '',
+});
+
+const CursorActionsContext = createContext<CursorActions>({
   setCursor: () => {},
   resetCursor: () => {},
   isTouch: false,
 });
 
 export function CursorProvider({ children }: { children: React.ReactNode }) {
-  const [pos, setPos] = useState({ x: 0, y: 0 });
-  const [variant, setVariant] = useState<CursorVariant>('default');
-  const [label, setLabel] = useState('');
+  const [state, setState] = useState<CursorState>({
+    variant: 'default',
+    label: '',
+  });
   const isTouch = useIsTouchDevice();
-  const raf = useRef<number>(0);
-  const mouseRef = useRef({ x: 0, y: 0 });
 
-  useEffect(() => {
-    if (isTouch) return;
-
-    const onMove = (e: MouseEvent) => {
-      mouseRef.current = { x: e.clientX, y: e.clientY };
-    };
-
-    window.addEventListener('mousemove', onMove, { passive: true });
-
-    // Lerp loop
-    let currentX = 0;
-    let currentY = 0;
-
-    const tick = () => {
-      currentX += (mouseRef.current.x - currentX) * 0.15;
-      currentY += (mouseRef.current.y - currentY) * 0.15;
-      setPos({ x: currentX, y: currentY });
-      raf.current = requestAnimationFrame(tick);
-    };
-    raf.current = requestAnimationFrame(tick);
-
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      cancelAnimationFrame(raf.current);
-    };
-  }, [isTouch]);
-
-  const setCursor = useCallback((v: CursorVariant, l = '') => {
-    setVariant(v);
-    setLabel(l);
+  const setCursor = useCallback((variant: CursorVariant, label = '') => {
+    setState((prev) => {
+      if (prev.variant === variant && prev.label === label) return prev;
+      return { variant, label };
+    });
   }, []);
 
   const resetCursor = useCallback(() => {
-    setVariant('default');
-    setLabel('');
+    setState((prev) => {
+      if (prev.variant === 'default' && prev.label === '') return prev;
+      return { variant: 'default', label: '' };
+    });
   }, []);
 
+  const actions = useMemo<CursorActions>(
+    () => ({
+      setCursor,
+      resetCursor,
+      isTouch,
+    }),
+    [setCursor, resetCursor, isTouch]
+  );
+
   return (
-    <CursorContext.Provider
-      value={{ x: pos.x, y: pos.y, variant, label, setCursor, resetCursor, isTouch }}
-    >
-      {children}
-    </CursorContext.Provider>
+    <CursorActionsContext.Provider value={actions}>
+      <CursorStateContext.Provider value={state}>
+        {children}
+      </CursorStateContext.Provider>
+    </CursorActionsContext.Provider>
   );
 }
 
-export function useCursor() {
-  return useContext(CursorContext);
+/**
+ * Use in interactive components that trigger cursor changes.
+ * Components using useCursorActions will NEVER re-render when cursor changes!
+ */
+export function useCursorActions() {
+  return useContext(CursorActionsContext);
+}
+
+/**
+ * Use in the cursor renderer only.
+ */
+export function useCursorState() {
+  return useContext(CursorStateContext);
 }

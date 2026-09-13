@@ -1,6 +1,6 @@
-import { Mail, ExternalLink } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { contact } from '../../data/portfolio';
-import { useCursor } from '../../hooks/useCursor';
+import { useCursorActions } from '../../hooks/useCursor';
 import { useSound } from '../../hooks/useSound';
 
 // Simple inline SVG icons for GitHub and LinkedIn (lucide-react removed brand icons)
@@ -27,7 +27,7 @@ const socialLinks = [
 ];
 
 export default function Footer() {
-  const { setCursor, resetCursor } = useCursor();
+  const { setCursor, resetCursor } = useCursorActions();
   const { playHover } = useSound();
 
   return (
